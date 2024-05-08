@@ -10,7 +10,7 @@ require (
 )
 
 require (
-	github.com/akshaybt001/DatingApp_proto_files v0.0.0-20240429135458-1f8784499fe9
+	github.com/akshaybt001/DatingApp_proto_files v0.0.0-20240506124511-b8fb03a2bbbe
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	golang.org/x/net v0.21.0 // indirect
 	golang.org/x/sys v0.17.0 // indirect

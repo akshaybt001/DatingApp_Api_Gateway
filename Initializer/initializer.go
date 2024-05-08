@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	matchcontrollers "github.com/akshaybt001/DatingApp_Api_Gateway/controllers/matchControllers"
 	notifycontrollers "github.com/akshaybt001/DatingApp_Api_Gateway/controllers/notifyControllers"
 	usercontrollers "github.com/akshaybt001/DatingApp_Api_Gateway/controllers/userControllers"
 	"github.com/akshaybt001/DatingApp_Api_Gateway/helper"
@@ -24,9 +25,15 @@ func Connect(r *chi.Mux) {
 	if err != nil {
 		fmt.Println("connot connect to notification service", err)
 	}
+	matchConn, err := helper.DialGrpc("localhost:8084")
+	if err != nil {
+		fmt.Println("connot connect to match making serivce", err)
+	}
 	userController := usercontrollers.NewUserServiceClient(userConn, sercet)
-	notifyController :=notifycontrollers.NewNotificationServiceClient(notifyConn,sercet)
+	notifyController := notifycontrollers.NewNotificationServiceClient(notifyConn, sercet)
+	matchController := matchcontrollers.NewMatchServiceClient(matchConn)
 
 	userController.InitialiseUserControllers(r)
 	notifyController.InitialiseNotifyControllers(r)
+	matchController.InitialiseUserControllers(r)
 }

@@ -36,11 +36,18 @@ func (user *UserController) InitialiseUserControllers(r *chi.Mux) {
 	r.Delete("/user/interest", middleware.UserMiddleware(user.DeleteInterestUser))
 	r.Post("/user/gender", middleware.UserMiddleware(user.addGenderUser))
 	r.Get("/user/gender", middleware.UserMiddleware(user.getGenderUser))
+	r.Get("/user/genders", middleware.UserMiddleware(user.getAllGenders))
 	r.Post("/user/profile/preference", middleware.UserMiddleware(user.addPreference))
 	r.Patch("/user/profile/preference", middleware.UserMiddleware(user.editPreference))
 	r.Get("/user/profile/preference", middleware.UserMiddleware(user.getPreference))
 	r.Post("/user/profile/image", middleware.UserMiddleware(user.uploadProfilePic))
 	r.Get("/user/profile", middleware.UserMiddleware(user.getProfile))
+	r.Post("/user/profile/age", middleware.UserMiddleware(user.updateAge))
+	r.Get("/user/home", middleware.UserMiddleware(user.getHomePage))
+	r.Get("/plans", middleware.UserMiddleware(user.getSubscriptionPlans))
+	r.Get("/subscriptions/payment", middleware.CorsMiddleware(user.paymentForSubscription))
+	r.Get("/payment/verify", middleware.CorsMiddleware(user.verifyPayment))
+	r.Get("/payment/verified", middleware.CorsMiddleware(user.paymentVerified))
 
 	r.Post("/admin/login", user.adminLogin)
 	r.Post("/admin/logout", middleware.AdminMiddleware(user.adminLogout))
@@ -50,5 +57,7 @@ func (user *UserController) InitialiseUserControllers(r *chi.Mux) {
 	r.Post("/admin/gender", middleware.AdminMiddleware(user.adminAddGender))
 	r.Patch("/admin/gender", middleware.AdminMiddleware(user.adminUpdateGender))
 	r.Get("/admin/gender", middleware.AdminMiddleware(user.getAllGenders))
+	r.Post("/subscriptions", middleware.CorsMiddleware(middleware.AdminMiddleware(user.addSubscriptionPlan)))
+	r.Patch("/subscriptions", middleware.CorsMiddleware(middleware.AdminMiddleware(user.updateSubscriptionPlans)))
 
 }

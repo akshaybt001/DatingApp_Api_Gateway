@@ -7,6 +7,7 @@ type UserProfile struct {
 	Name       string                 `json:"name,omitempty"`
 	Email      string                 `json:"email,omitempty"`
 	Phone      string                 `json:"phone,omitempty"`
+	Age        int                    `json:"age,omitempty"`
 	Image      string                 `json:"image,omitempty"`
 	Gender     *pb.GenderResponse     `json:"gender,omitempty"`
 	Interest   []*pb.InterestResponse `json:"interest,omitempty"`

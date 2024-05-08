@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/akshaybt001/DatingApp_Api_Gateway/JWT"
@@ -45,32 +47,32 @@ func (user *UserController) userSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Otp == "" {
-		_, err := user.NotifiyConn.SendOTP(context.Background(), &pb.SendOtpRequest{
-			Email: req.Email,
-		})
-		if err != nil {
-			helper.PrintError("error sending otp", err)
-			http.Error(w, "error sending otp", http.StatusBadRequest)
-			return
-		}
-		json.NewEncoder(w).Encode(map[string]string{"message": "please enter the OTP sent to your email"})
-		return
+	// if req.Otp == "" {
+	// 	_, err := user.NotifiyConn.SendOTP(context.Background(), &pb.SendOtpRequest{
+	// 		Email: req.Email,
+	// 	})
+	// 	if err != nil {
+	// 		helper.PrintError("error sending otp", err)
+	// 		http.Error(w, "error sending otp", http.StatusBadRequest)
+	// 		return
+	// 	}
+	// 	json.NewEncoder(w).Encode(map[string]string{"message": "please enter the OTP sent to your email"})
+	// 	return
 
-	} else {
-		varifyotp, err := user.NotifiyConn.VerifyOTP(context.Background(), &pb.VerifyOtpRequest{
-			Otp:   req.Otp,
-			Email: req.Email,
-		})
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+	// } else {
+	// 	varifyotp, err := user.NotifiyConn.VerifyOTP(context.Background(), &pb.VerifyOtpRequest{
+	// 		Otp:   req.Otp,
+	// 		Email: req.Email,
+	// 	})
+	// 	if err != nil {
+	// 		http.Error(w, err.Error(), http.StatusBadRequest)
 
-		}
-		if !varifyotp.Verified {
-			http.Error(w, "otp verification failed please try again", http.StatusBadRequest)
-			return
-		}
-	}
+	// 	}
+	// 	if !varifyotp.Verified {
+	// 		http.Error(w, "otp verification failed please try again", http.StatusBadRequest)
+	// 		return
+	// 	}
+	// }
 	res, err := user.UserConn.UserSignup(r.Context(), &req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -615,51 +617,6 @@ func (user *UserController) addGenderUser(w http.ResponseWriter, r *http.Request
 	w.Write([]byte(`{"message": "added successfully"}`))
 }
 
-// func (user *UserController) getGenderUser(w http.ResponseWriter, r *http.Request) {
-// 	userID, ok := r.Context().Value("userId").(string)
-// 	if !ok {
-// 		helper.PrintError("unable to get id from context", fmt.Errorf("error"))
-// 		http.Error(w, "error while retrieving id", http.StatusBadRequest)
-// 		return
-// 	}
-// 	req := &pb.GetUserById{
-// 		Id: userID,
-// 	}
-// 	genders, err := user.UserConn.GetAllGenderUser(context.Background(), req)
-// 	if err != nil {
-// 		helper.PrintError("error while listing gender", err)
-// 		http.Error(w, err.Error(), http.StatusBadRequest)
-// 		return
-// 	}
-// 	genderData := []*pb.GenderResponse{}
-// 	for {
-// 		gender, err := genders.Recv()
-// 		if err == io.EOF {
-// 			break
-// 		}
-// 		if err != nil {
-// 			helper.PrintError("error while recieving stream", err)
-// 			http.Error(w, err.Error(), http.StatusBadRequest)
-// 			return
-// 		}
-// 		genderData = append(genderData, gender)
-// 	}
-// 	jsonData, err := json.Marshal(genderData)
-// 	if err != nil {
-// 		helper.PrintError("error while marshalling to json", err)
-// 		http.Error(w, err.Error(), http.StatusBadRequest)
-// 		return
-// 	}
-// 	if len(genderData) == 0 {
-// 		w.WriteHeader(http.StatusOK)
-// 		w.Header().Set("Content-Type", "application/json")
-// 		w.Write([]byte(`{"message":"no gender added"}`))
-// 	}
-// 	w.WriteHeader(http.StatusOK)
-// 	w.Header().Set("Content-Type", "application/json")
-// 	w.Write(jsonData)
-
-// }
 func (user *UserController) getGenderUser(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userId").(string)
 	if !ok {
@@ -785,8 +742,8 @@ func (user *UserController) getPreference(w http.ResponseWriter, r *http.Request
 	}
 	preference, err := user.UserConn.GetAllPreference(context.Background(), req)
 	if err != nil {
-		helper.PrintError("error while retrieving address", err)
-		http.Error(w, "error while retrieving address", http.StatusBadRequest)
+		helper.PrintError("error while retrieving preference", err)
+		http.Error(w, "error while retrieving preference", http.StatusBadRequest)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -803,6 +760,7 @@ func (user *UserController) getPreference(w http.ResponseWriter, r *http.Request
 	}
 	w.Write(jsonData)
 }
+
 func (user *UserController) uploadProfilePic(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseMultipartForm(10 << 20)
 	if err != nil {
@@ -909,11 +867,19 @@ func (user *UserController) getProfile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	ageData, err := user.UserConn.UserGetAge(context.Background(), &pb.GetUserById{
+		Id: userID,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	res := helperstruct.UserProfile{
 		Id:         userData.Id,
 		Name:       userData.Name,
 		Email:      userData.Email,
 		Phone:      userData.Phone,
+		Age:        int(ageData.Age),
 		Image:      imageData.Url,
 		Gender:     genderData,
 		Address:    address,
@@ -928,4 +894,249 @@ func (user *UserController) getProfile(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(jsonData)
+}
+
+func (user *UserController) updateAge(w http.ResponseWriter, r *http.Request) {
+	var req *pb.UserAgeRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		helper.PrintError("error parsing json", err)
+		http.Error(w, "error parsing json", http.StatusBadRequest)
+		return
+	}
+
+	userID, ok := r.Context().Value("userId").(string)
+	if !ok {
+		helper.PrintError("unable to get companyid from context", fmt.Errorf("error"))
+		http.Error(w, "error whil retrieving companyId", http.StatusBadRequest)
+		return
+	}
+	req.UserId = userID
+	if _, err := user.UserConn.UserAddAge(context.Background(), req); err != nil {
+		helper.PrintError("error while updating age", err)
+		http.Error(w, "error while updating age", http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"message": "updated successfully"}`))
+}
+
+func (user *UserController) getHomePage(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value("userId").(string)
+	if !ok {
+		helper.PrintError("unable to get id from context", fmt.Errorf("error"))
+		http.Error(w, "error while retrieving Id", http.StatusBadRequest)
+		return
+	}
+	req := &pb.GetUserById{
+		Id: userID,
+	}
+	homePage, err := user.UserConn.HomePage(context.Background(), req)
+	if err != nil {
+		helper.PrintError("error while retrieving homepage", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	if homePage.Name == "" {
+		w.Write([]byte(`{"message":"No new recommendations available"}`))
+		return
+	}
+	jsonData, err := json.Marshal(homePage)
+	if err != nil {
+		helper.PrintError("error marshalling to json", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Write(jsonData)
+}
+
+func (user *UserController) addSubscriptionPlan(w http.ResponseWriter, r *http.Request) {
+	var data map[string]interface{}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer r.Body.Close()
+	if err := json.Unmarshal(body, &data); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	client := &http.Client{}
+	req, err := http.NewRequest(http.MethodPost, "http://localhost:8090/subscriptions", strings.NewReader(string(jsonData)))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)             // Read error response body
+		http.Error(w, string(body), resp.StatusCode) // Return the same status code and body
+		return
+	}
+	io.Copy(w, resp.Body)
+}
+
+func (user *UserController) updateSubscriptionPlans(w http.ResponseWriter, r *http.Request) {
+	var data map[string]interface{}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer r.Body.Close()
+	if err := json.Unmarshal(body, &data); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	subId := r.URL.Query().Get("sub_id")
+	u, err := url.Parse("http://localhost:8090/subscriptions")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	q := u.Query()
+	q.Set("sub_id", subId)
+	u.RawQuery = q.Encode()
+	client := &http.Client{}
+	req, err := http.NewRequest(http.MethodPatch, u.String(), strings.NewReader(string(jsonData)))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		http.Error(w, string(body), resp.StatusCode)
+		return
+	}
+	io.Copy(w, resp.Body)
+}
+
+func (user *UserController) getSubscriptionPlans(w http.ResponseWriter, r *http.Request) {
+	req, err := http.NewRequest("GET", "http://localhost:8090/plans", r.Body)
+	if err != nil {
+		helper.PrintError("error while making req from api gateway", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	client := &http.Client{}
+	req.Header = r.Header
+	res, err := client.Do(req)
+	if err != nil || res == nil {
+		helper.PrintError("error happenend at making second req from api gateway", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer res.Body.Close()
+	for k, v := range res.Header {
+		w.Header()[k] = v
+	}
+	w.WriteHeader(res.StatusCode)
+	io.Copy(w, res.Body)
+
+}
+
+func (user *UserController) paymentForSubscription(w http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+	userId := queryParams.Get("user_id")
+	planId := queryParams.Get("plan_id")
+	url := fmt.Sprintf("http://localhost:8090/subscriptions/payment?user_id=%s&plan_id=%s", userId, planId)
+	req, err := http.NewRequest("GET", url, r.Body)
+	if err != nil {
+		helper.PrintError("error while making req from api gateway", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	client := &http.Client{}
+	req.Header = r.Header
+	res, err := client.Do(req)
+	if err != nil || res == nil {
+		helper.PrintError("error happenend at making second req from api gateway", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer res.Body.Close()
+	for k, v := range res.Header {
+		w.Header()[k] = v
+	}
+	w.WriteHeader(res.StatusCode)
+	io.Copy(w, res.Body)
+}
+
+func (user *UserController) verifyPayment(w http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+	userId := queryParams.Get("user_id")
+	paymentRef := queryParams.Get("payment_ref")
+	orderId := queryParams.Get("order_id")
+	signature := queryParams.Get("signature")
+	id := queryParams.Get("id")
+	total := queryParams.Get("total")
+	planId := queryParams.Get("plan_id")
+	url := fmt.Sprintf("http://localhost:8090/payment/verify?user_id=%s&payment_ref=%s&order_id=%s&signature=%s&id=%s&total=%s&plan_id=%s", userId, paymentRef, orderId, signature, id, total, planId)
+	req, err := http.NewRequest("GET", url, r.Body)
+	if err != nil {
+		helper.PrintError("error while making req from api gateway", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	client := &http.Client{}
+	req.Header = r.Header
+	res, err := client.Do(req)
+	if err != nil || res == nil {
+		helper.PrintError("error happenend at making second req from api gateway", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer res.Body.Close()
+	for k, v := range res.Header {
+		w.Header()[k] = v
+	}
+	w.WriteHeader(res.StatusCode)
+	io.Copy(w, res.Body)
+}
+
+func (user *UserController) paymentVerified(w http.ResponseWriter, r *http.Request) {
+	req, err := http.NewRequest("GET", "http://localhost:8090/payment/verified", r.Body)
+	if err != nil {
+		helper.PrintError("error while making req from api gateway", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	client := &http.Client{}
+	req.Header = r.Header
+	res, err := client.Do(req)
+	if err != nil || res == nil {
+		helper.PrintError("error happenend at making second req from api gateway", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer res.Body.Close()
+	for k, v := range res.Header {
+		w.Header()[k] = v
+	}
+	w.WriteHeader(res.StatusCode)
+	io.Copy(w, res.Body)
 }
