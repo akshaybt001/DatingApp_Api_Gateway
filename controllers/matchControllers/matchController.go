@@ -33,6 +33,51 @@ func (m *MatchController) like(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`{"message": "liked successfully"}`))
 }
 
+func (m *MatchController) getWhoLikeUser(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value("userId").(string)
+	if !ok {
+		helper.PrintError("unable to get id from context", fmt.Errorf("error"))
+		http.Error(w, "error while retrieving id", http.StatusBadRequest)
+		return
+	}
+	req := &pb.GetByUserId{
+		Id: userID,
+	}
+	likeduser, err := m.MatchConn.GetWhoLikesUser(context.Background(), req)
+	if err != nil {
+		helper.PrintError("error while listing liked users", err)
+		http.Error(w, "error while retrieving id", http.StatusBadRequest)
+		return
+	}
+	likeData := []*pb.LikedUsersResposne{}
+	for {
+		like, err := likeduser.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			helper.PrintError("error while recieving stream", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		likeData = append(likeData, like)
+	}
+	jsonData, err := json.Marshal(likeData)
+	if err != nil {
+		helper.PrintError("error while marshalling to json", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if len(likeData) == 0 {
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"message":"no one liked you"}`))
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonData)
+}
+
 func (m *MatchController) getMatch(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userId").(string)
 	if !ok {
@@ -95,4 +140,3 @@ func (m *MatchController) deleteMatch(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(`{"message": "deleted successfully"}`))
 }
-

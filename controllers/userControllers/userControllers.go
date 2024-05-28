@@ -17,6 +17,11 @@ import (
 	"github.com/akshaybt001/DatingApp_proto_files/pb"
 )
 
+type Credentials struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 func (user *UserController) userSignup(w http.ResponseWriter, r *http.Request) {
 	if cookie, _ := r.Cookie("UserToken"); cookie != nil {
 		http.Error(w, "you are already logged in ..", http.StatusConflict)
@@ -109,23 +114,61 @@ func (user *UserController) userSignup(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonData)
 
 }
+
 func (user *UserController) userLogin(w http.ResponseWriter, r *http.Request) {
-	if cookie, _ := r.Cookie("UserToken"); cookie != nil {
-		http.Error(w, "you are already logged in..", http.StatusConflict)
+	// if cookie, _ := r.Cookie("UserToken"); cookie != nil {
+	// 	http.Error(w, "you are already logged in..", http.StatusConflict)
+	// 	return
+	// }
+	// htmlFile, err := os.Open("/template/index.html")
+	// if err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
+	// defer htmlFile.Close()
+
+	// if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	// 	helper.PrintError("error parsing json", err)
+	// 	http.Error(w, err.Error(), http.StatusBadRequest)
+	// 	return
+	// }
+
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		fmt.Fprintf(w, "Method not allowed")
 		return
 	}
-	var req *pb.LoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		helper.PrintError("error parsing json", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+
+	// Read request body
+	decoder := json.NewDecoder(r.Body)
+	var creds Credentials
+	err := decoder.Decode(&creds)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "Invalid request body")
 		return
 	}
+
+	req := &pb.LoginRequest{
+		Email:    creds.Email,
+		Password: creds.Password,
+	}
+
 	res, err := user.UserConn.UserLogin(context.Background(), req)
 	if err != nil {
 		helper.PrintError("error while logging in", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	// Respond with JSON based on validation result
+	// var response map[string]interface{}
+	// if err == nil {
+	// 	response = map[string]interface{}{"success": true}
+	// } else {
+	// 	response = map[string]interface{}{"success": false, "message": "Invalid username or password"}
+	// }
+
 	jsonData, err := json.Marshal(res)
 	if err != nil {
 		helper.PrintError("error while parsing json", err)
@@ -146,6 +189,7 @@ func (user *UserController) userLogin(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, cookie)
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
+	// json.NewEncoder(w).Encode(jsonData)
 	w.Write(jsonData)
 }
 
@@ -1139,4 +1183,44 @@ func (user *UserController) paymentVerified(w http.ResponseWriter, r *http.Reque
 	}
 	w.WriteHeader(res.StatusCode)
 	io.Copy(w, res.Body)
+}
+
+func (user *UserController) getAllNotifications(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value("userId").(string)
+	if !ok {
+		helper.PrintError("unable to get id from context", fmt.Errorf("error"))
+		http.Error(w, "error whil retrieving companyId", http.StatusBadRequest)
+		return
+	}
+	notifications, err := user.NotifiyConn.GetAllNotifications(context.Background(), &pb.GetNotificationsByUserId{
+		UserId: userID,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	notificationData := []*pb.NotificationResponse{}
+	for {
+		notification, err := notifications.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		notificationData = append(notificationData, notification)
+	}
+	jsonData, err := json.Marshal(notificationData)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	if len(notificationData) == 0 {
+		w.Write([]byte(`{"message":"you don't have any notification yet"}`))
+		return
+	}
+	w.Write(jsonData)
 }

@@ -21,4 +21,5 @@ func (m *MatchController) InitialiseUserControllers(r *chi.Mux) {
 	r.Post("/like", middleware.UserMiddleware(m.like))
 	r.Get("/match", middleware.UserMiddleware(m.getMatch))
 	r.Delete("/match", middleware.UserMiddleware(m.deleteMatch))
+	r.Get("/like/view", middleware.UserMiddleware(m.getWhoLikeUser))
 }

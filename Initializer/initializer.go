@@ -16,7 +16,7 @@ func Connect(r *chi.Mux) {
 	if err := godotenv.Load("../.env"); err != nil {
 		fmt.Println("error secret cannot be retreived")
 	}
-	sercet := os.Getenv("secret")
+	sercet := os.Getenv("SECRET")
 	userConn, err := helper.DialGrpc("localhost:8081")
 	if err != nil {
 		fmt.Println("cannot connet to user service", err)

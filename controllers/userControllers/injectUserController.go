@@ -48,6 +48,7 @@ func (user *UserController) InitialiseUserControllers(r *chi.Mux) {
 	r.Get("/subscriptions/payment", middleware.CorsMiddleware(user.paymentForSubscription))
 	r.Get("/payment/verify", middleware.CorsMiddleware(user.verifyPayment))
 	r.Get("/payment/verified", middleware.CorsMiddleware(user.paymentVerified))
+	r.Get("/user/notifications", middleware.UserMiddleware(user.getAllNotifications))
 
 	r.Post("/admin/login", user.adminLogin)
 	r.Post("/admin/logout", middleware.AdminMiddleware(user.adminLogout))
