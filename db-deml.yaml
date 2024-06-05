@@ -6,7 +6,7 @@ metadata:
 type: Opaque
 data:
   POSTGRES_USER: cG9zdGdyZXM=
-  POSTGRES_PASSWORD: ODEyOQ==
+  POSTGRES_PASSWORD: MzA0NA==
 ---
 apiVersion: v1
 kind: ConfigMap
