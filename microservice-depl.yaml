@@ -1,0 +1,235 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+spec:
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+      - name: user-service
+        image: akshaybt/da-user-service
+        resources:
+          limits:
+            memory: "50Mi"
+            cpu: "50m"
+        ports:
+        - containerPort: 8081
+        env:
+        - name: DB_KEY
+          value: "host=postgres-service user=postgres password=3044 dbname=da_userservice port=5432 sslmode=disable"
+        - name:  MINIO_ENDPOINT
+          value: "minio-service:9000"
+        - name: MINIO_ACCESSKEY
+          value: "minioadmin"
+        - name: MINIO_SECRETKEY
+          value: "minioadmin"
+        - name: BUCKET_NAME
+          value:  "datingapp"
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name:  user-service
+spec:
+  selector:
+    app:  user-service
+  ports:
+  - port:  8081
+    targetPort:  8081
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: match-service
+spec:
+  selector:
+    matchLabels:
+      app: match-service
+  template:
+    metadata:
+      labels:
+        app: match-service
+    spec:
+      containers:
+      - name: match-service
+        image: akshaybt/da-match-service
+        resources:
+          limits:
+            memory: "50Mi"
+            cpu: "50m"
+        ports:
+        - containerPort: 8084
+        env:
+        - name: DB_KEY
+          value: "host=postgres-service  password=3044 user=postgres dbname=da_matchservice port=5432 sslmode=disable"
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name:  match-service
+spec:
+  selector:
+    app:  match-service
+  ports:
+  - port:  8084
+    targetPort:  8084
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat-service
+spec:
+  selector:
+    matchLabels:
+      app: chat-service
+  template:
+    metadata:
+      labels:
+        app: chat-service
+    spec:
+      containers:
+      - name: chat-service
+        image: akshaybt/da-chat-service
+        resources:
+          limits:
+            memory: "50Mi"
+            cpu: "50m"
+        ports:
+        - containerPort: 8000
+        env:
+        - name: MONGO_KEY
+          value: "mongodb://mongodb-service:27017"
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name:  chat-service
+spec:
+  selector:
+    app:  chat-service
+  ports:
+  - port:  8000
+    targetPort:  8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+spec:
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      containers:
+      - name: notification-service
+        image: akshaybt/da-notification-service
+        resources:
+          limits:
+            memory: "50Mi"
+            cpu: "50m"
+        ports:
+        - containerPort: 8083
+        env:
+        - name: DB_KEY
+          value: "mongodb://mongodb-service:27017"
+        - name: SMTP_USER
+          value: "pholap6739@gmail.com"
+        - name: SMTP_PASSWORD
+          value: "zlkj hhtf tfxt kwvy"
+        - name: REDIS_ADDR
+          value: "redis-service:6379"
+        - name: KAFKA_ADDR
+          value: "apache-kafka-service:9092"
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: notification-service
+spec:
+  selector:
+    app:  notification-service
+  ports:
+  - port:  8083
+    targetPort:  8083
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+spec:
+  selector:
+    matchLabels:
+      app: payment-service
+  template:
+    metadata:
+      labels:
+        app: payment-service
+    spec:
+      containers:
+      - name: payment-service
+        image: akshaybt/da-payment-service
+        resources:
+          limits:
+            memory: "50Mi"
+            cpu: "50m"
+        ports:
+        - containerPort: 8090
+        env:
+        - name: DB_KEY
+          value: "host=postgres-service user=postgres password=3044 dbname=da_paymentservice port=5432 sslmode=disable"
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name:  payment-service
+spec:
+  selector:
+    app: payment-service
+  ports:
+  - port:  8090
+    targetPort:  8090
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apigateway
+spec:
+  selector:
+    matchLabels:
+      app: apigateway
+  template:
+    metadata:
+      labels:
+        app: apigateway
+    spec:
+      containers:
+      - name: apigateway
+        image: vishnusunil243/job-portal-apigateway
+        resources:
+          limits:
+            memory: "50Mi"
+            cpu: "50m"
+        ports:
+        - containerPort: 8080
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: apigateway
+spec:
+  selector:
+    app: apigateway
+  ports:
+  - port: 8080
+    targetPort: 8080
+  type: LoadBalancer

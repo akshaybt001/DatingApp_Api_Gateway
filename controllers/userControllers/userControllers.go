@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -22,8 +24,11 @@ type Credentials struct {
 	Password string `json:"password"`
 }
 
+var logger = slog.New(slog.NewTextHandler(os.Stdout, nil))
+
 func (user *UserController) userSignup(w http.ResponseWriter, r *http.Request) {
 	if cookie, _ := r.Cookie("UserToken"); cookie != nil {
+		logger.Warn("user were already logged in ")
 		http.Error(w, "you are already logged in ..", http.StatusConflict)
 		return
 	}
@@ -52,32 +57,32 @@ func (user *UserController) userSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if req.Otp == "" {
-	// 	_, err := user.NotifiyConn.SendOTP(context.Background(), &pb.SendOtpRequest{
-	// 		Email: req.Email,
-	// 	})
-	// 	if err != nil {
-	// 		helper.PrintError("error sending otp", err)
-	// 		http.Error(w, "error sending otp", http.StatusBadRequest)
-	// 		return
-	// 	}
-	// 	json.NewEncoder(w).Encode(map[string]string{"message": "please enter the OTP sent to your email"})
-	// 	return
+	if req.Otp == "" {
+		_, err := user.NotifiyConn.SendOTP(context.Background(), &pb.SendOtpRequest{
+			Email: req.Email,
+		})
+		if err != nil {
+			helper.PrintError("error sending otp", err)
+			http.Error(w, "error sending otp", http.StatusBadRequest)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]string{"message": "please enter the OTP sent to your email"})
+		return
 
-	// } else {
-	// 	varifyotp, err := user.NotifiyConn.VerifyOTP(context.Background(), &pb.VerifyOtpRequest{
-	// 		Otp:   req.Otp,
-	// 		Email: req.Email,
-	// 	})
-	// 	if err != nil {
-	// 		http.Error(w, err.Error(), http.StatusBadRequest)
+	} else {
+		varifyotp, err := user.NotifiyConn.VerifyOTP(context.Background(), &pb.VerifyOtpRequest{
+			Otp:   req.Otp,
+			Email: req.Email,
+		})
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 
-	// 	}
-	// 	if !varifyotp.Verified {
-	// 		http.Error(w, "otp verification failed please try again", http.StatusBadRequest)
-	// 		return
-	// 	}
-	// }
+		}
+		if !varifyotp.Verified {
+			http.Error(w, "otp verification failed please try again", http.StatusBadRequest)
+			return
+		}
+	}
 	res, err := user.UserConn.UserSignup(r.Context(), &req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

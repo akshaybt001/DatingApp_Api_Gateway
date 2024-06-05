@@ -1,0 +1,239 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-config
+  namespace: default
+type: Opaque
+data:
+  POSTGRES_USER: cG9zdGdyZXM=
+  POSTGRES_PASSWORD: ODEyOQ==
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: initdb-config
+data:
+  initdb.sql: |
+    CREATE DATABASE da_userservice;
+    CREATE DATABASE da_matchservice;
+    CREATE DATABASE da_paymentservice;
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-database
+spec:
+  selector:
+    matchLabels:
+      app: postgres
+  serviceName: postgres-service
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres-database
+        image: postgres:14-alpine
+        envFrom:
+        - secretRef:
+            name: postgres-config
+        ports:
+        - containerPort: 5432
+          name: db
+        volumeMounts:
+        - name: initdb-script
+          mountPath: /docker-entrypoint-initdb.d
+      volumes:
+      - name: initdb-script
+        configMap:
+          name: initdb-config
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+          requests:
+            storage: 50Mi
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name:  postgres-service
+spec:
+  selector:
+    app:  postgres
+  ports:
+  - port:  5432
+    targetPort:  5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+spec:
+  selector:
+    matchLabels:
+      app: redis
+  serviceName: redis-service
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:latest
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+          ports:
+            - containerPort: 6379
+              name: db
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data/redisdb
+  volumeClaimTemplates:  
+    - metadata:
+        name: redis-data 
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 100Mi
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name:  redis-service
+spec:
+  selector:
+    app:  redis
+  ports:
+  - port:  6379
+    targetPort:  6379
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongodb
+spec:
+  selector:
+    matchLabels:
+      app: mongodb
+  serviceName: mongodb-service
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+        - name: mongodb
+          image: mongo:latest
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "100m"
+          ports:
+            - containerPort: 27017
+              name: db
+          volumeMounts:
+            - name: mongo-data
+              mountPath: /data/db
+  volumeClaimTemplates:  
+    - metadata:
+        name: mongo-data  
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 100Mi
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name:  mongodb-service
+spec:
+  selector:
+    app:  mongodb
+  ports:
+  - port:  27017
+    targetPort:  27017
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: minio-secret
+type: Opaque
+data:
+  MINIO_ACCESS_KEY: R0l0b2E4WE5janc2djMySUxLZ0Q=
+  MINIO_SECRET_KEY: WUJpZFk1eVF2azZFZUZvNDdhYnFpaURxR1IwV010anNnMHlFV1B4ag==
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: minio-database
+spec:
+  selector:
+    matchLabels:
+      app: minio-database
+  serviceName: minio-service
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: minio-database
+    spec:
+      containers:
+      - name: minio-database
+        image: quay.io/minio/minio:latest
+        command: ["/bin/bash", "-c", "set -e; buckets=(datingapp); for bucket in '${buckets[@]}'; do mc mb $bucket; done; echo 'Buckets created successfully!'; minio server /data"]
+        envFrom:
+        - secretRef:
+            name: minio-secret
+        ports:
+        - containerPort: 9000
+          name: dbone
+        - containerPort: 9001
+          name: dbtwo
+        volumeMounts:
+        - name: minio-data
+          mountPath: /data
+      volumes:
+      - name: minio-data
+        persistentVolumeClaim:
+          claimName: minio-data
+  volumeClaimTemplates:
+  - metadata:
+      name: minio-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+          requests:
+            storage: 50Mi
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-service
+spec:
+  selector:
+    app: minio-service
+  ports:
+  - name: minio-port-1
+    port: 9000
+    targetPort: 9000
+  - name: minio-port-2
+    port: 9001
+    targetPort: 9001
