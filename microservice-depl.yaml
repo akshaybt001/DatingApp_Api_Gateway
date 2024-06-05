@@ -214,7 +214,7 @@ spec:
     spec:
       containers:
       - name: apigateway
-        image: vishnusunil243/job-portal-apigateway
+        image: akshaybt/da-api-gateway
         resources:
           limits:
             memory: "50Mi"
