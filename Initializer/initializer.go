@@ -17,15 +17,15 @@ func Connect(r *chi.Mux) {
 		fmt.Println("error secret cannot be retreived")
 	}
 	sercet := os.Getenv("SECRET")
-	userConn, err := helper.DialGrpc("localhost:8081")
+	userConn, err := helper.DialGrpc("user-service:8081")
 	if err != nil {
 		fmt.Println("cannot connet to user service", err)
 	}
-	notifyConn, err := helper.DialGrpc("localhost:8083")
+	notifyConn, err := helper.DialGrpc("notification-service:8083")
 	if err != nil {
 		fmt.Println("connot connect to notification service", err)
 	}
-	matchConn, err := helper.DialGrpc("localhost:8084")
+	matchConn, err := helper.DialGrpc("match-service:8084")
 	if err != nil {
 		fmt.Println("connot connect to match making serivce", err)
 	}
