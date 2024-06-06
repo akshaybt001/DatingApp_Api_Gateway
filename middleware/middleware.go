@@ -15,7 +15,7 @@ func init() {
 	if err := godotenv.Load("../.env"); err != nil {
 		helper.PrintError("secret cannot be retrieved", err)
 	}
-	secret = os.Getenv("secret")
+	secret = os.Getenv("SECRET")
 }
 
 var (
