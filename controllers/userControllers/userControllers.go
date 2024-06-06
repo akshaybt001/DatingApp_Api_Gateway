@@ -180,7 +180,7 @@ func (user *UserController) userLogin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	cookieString, err := JWT.GenerateJWT(res.Id, false, []byte(user.Secret))
+	cookieString, err := JWT.GenerateJWT(res.Id, false, []byte("akshay"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -220,7 +220,7 @@ func (user *UserController) adminLogin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	cookieString, err := JWT.GenerateJWT(res.Id, true, []byte("akshay"))
+	cookieString, err := JWT.GenerateJWT(res.Id, true, []byte(user.Secret))
 	if err != nil {
 		helper.PrintError("error while generaing jwt", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
