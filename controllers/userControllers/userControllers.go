@@ -1085,7 +1085,7 @@ func (user *UserController) updateSubscriptionPlans(w http.ResponseWriter, r *ht
 }
 
 func (user *UserController) getSubscriptionPlans(w http.ResponseWriter, r *http.Request) {
-	req, err := http.NewRequest("GET", "http://localhost:8090/plans", r.Body)
+	req, err := http.NewRequest("GET", "http://payment-service:8090/plans", r.Body)
 	if err != nil {
 		helper.PrintError("error while making req from api gateway", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1112,7 +1112,7 @@ func (user *UserController) paymentForSubscription(w http.ResponseWriter, r *htt
 	queryParams := r.URL.Query()
 	userId := queryParams.Get("user_id")
 	planId := queryParams.Get("plan_id")
-	url := fmt.Sprintf("http://localhost:8090/subscriptions/payment?user_id=%s&plan_id=%s", userId, planId)
+	url := fmt.Sprintf("http://payment-service:8090/subscriptions/payment?user_id=%s&plan_id=%s", userId, planId)
 	req, err := http.NewRequest("GET", url, r.Body)
 	if err != nil {
 		helper.PrintError("error while making req from api gateway", err)
@@ -1144,7 +1144,7 @@ func (user *UserController) verifyPayment(w http.ResponseWriter, r *http.Request
 	id := queryParams.Get("id")
 	total := queryParams.Get("total")
 	planId := queryParams.Get("plan_id")
-	url := fmt.Sprintf("http://localhost:8090/payment/verify?user_id=%s&payment_ref=%s&order_id=%s&signature=%s&id=%s&total=%s&plan_id=%s", userId, paymentRef, orderId, signature, id, total, planId)
+	url := fmt.Sprintf("http://payment-service:8090/payment/verify?user_id=%s&payment_ref=%s&order_id=%s&signature=%s&id=%s&total=%s&plan_id=%s", userId, paymentRef, orderId, signature, id, total, planId)
 	req, err := http.NewRequest("GET", url, r.Body)
 	if err != nil {
 		helper.PrintError("error while making req from api gateway", err)
@@ -1168,7 +1168,7 @@ func (user *UserController) verifyPayment(w http.ResponseWriter, r *http.Request
 }
 
 func (user *UserController) paymentVerified(w http.ResponseWriter, r *http.Request) {
-	req, err := http.NewRequest("GET", "http://localhost:8090/payment/verified", r.Body)
+	req, err := http.NewRequest("GET", "http://payment-service:8090/payment/verified", r.Body)
 	if err != nil {
 		helper.PrintError("error while making req from api gateway", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
