@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
     // Replace with the actual URL of your backend API
-    const apiUrl = 'http://localhost:8080/user/profile';
+    const apiUrl = 'https://pholap.online/user/profile';
 
     fetch(apiUrl)
         .then(response => response.json())
