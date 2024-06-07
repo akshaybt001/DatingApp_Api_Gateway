@@ -1019,7 +1019,7 @@ func (user *UserController) addSubscriptionPlan(w http.ResponseWriter, r *http.R
 		return
 	}
 	client := &http.Client{}
-	req, err := http.NewRequest(http.MethodPost, "http://localhost:8090/subscriptions", strings.NewReader(string(jsonData)))
+	req, err := http.NewRequest(http.MethodPost, "http://payment-service:8090/subscriptions", strings.NewReader(string(jsonData)))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -1056,7 +1056,7 @@ func (user *UserController) updateSubscriptionPlans(w http.ResponseWriter, r *ht
 		return
 	}
 	subId := r.URL.Query().Get("sub_id")
-	u, err := url.Parse("http://localhost:8090/subscriptions")
+	u, err := url.Parse("http://payment-service:8090/subscriptions")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
